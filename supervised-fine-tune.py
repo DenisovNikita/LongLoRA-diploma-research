@@ -73,7 +73,12 @@ PROMPT_DICT = {
         "If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information.\n"
         "<</SYS>> \n\n {instruction} \n{input} [/INST]"
     ),
-    "prompt_llama2": "[INST]{instruction}[/INST]"
+    "prompt_llama2": "[INST]{instruction}[/INST]",
+    "prompt_input_diploma_special":(
+        "Below is an instruction that describes a task, paired with an input that provides further context. "
+        "Write a response that appropriately completes the request.\n\n"
+        "### Instruction:\nBelow is a diploma text. Your task is to generate abstract of this diploma.\n\n### Input:\n{input}\n\n### Response:"
+    ),
 }
 
 
@@ -186,13 +191,13 @@ class SupervisedDataset(Dataset):
 
         logging.warning("Formatting inputs...")
 
-        prompt_input, prompt_no_input = PROMPT_DICT["prompt_input_llama2"], PROMPT_DICT["prompt_llama2"]
+        prompt_input_diploma = PROMPT_DICT["prompt_input_diploma_special"]
         sources = [
-            prompt_input.format_map(example) if example and example != "" else prompt_no_input.format_map(example)
-            for example in data_table["diploma"]
+            prompt_input_diploma.format(input=diploma)
+            for diploma in data_table["diploma"]
         ]
 
-        targets = [f"{example}{tokenizer.eos_token}" for example in data_table["abstract"]]
+        targets = [f"{abstract}{tokenizer.eos_token}" for abstract in data_table["abstract"]]
 
         logging.warning("Tokenizing inputs... This may take some time...")
         data_dict = preprocess(sources, targets, tokenizer)
