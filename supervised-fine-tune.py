@@ -19,6 +19,7 @@ import copy
 import json
 import math
 import logging
+import pandas as pd
 from dataclasses import dataclass, field
 from typing import Dict, Optional, Sequence
 
@@ -181,17 +182,17 @@ class SupervisedDataset(Dataset):
     def __init__(self, data_path: str, tokenizer: transformers.PreTrainedTokenizer):
         super(SupervisedDataset, self).__init__()
         logging.warning("Loading data...")
-        list_data_dict = jload(data_path)
+        data_table = pd.read_csv(data_path)
 
         logging.warning("Formatting inputs...")
 
         prompt_input, prompt_no_input = PROMPT_DICT["prompt_input_llama2"], PROMPT_DICT["prompt_llama2"]
         sources = [
-            prompt_input.format_map(example) if example.get("diploma", "") != "" else prompt_no_input.format_map(example)
-            for example in list_data_dict
+            prompt_input.format_map(example) if example and example != "" else prompt_no_input.format_map(example)
+            for example in data_table["diploma"]
         ]
 
-        targets = [f"{example['abstract']}{tokenizer.eos_token}" for example in list_data_dict]
+        targets = [f"{example}{tokenizer.eos_token}" for example in data_table["abstract"]]
 
         logging.warning("Tokenizing inputs... This may take some time...")
         data_dict = preprocess(sources, targets, tokenizer)
