@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
 import io
 import os
 import copy
@@ -235,8 +236,12 @@ def make_supervised_data_module(tokenizer: transformers.PreTrainedTokenizer, dat
 
 
 def train():
+    print("Begin train")
+    
     parser = transformers.HfArgumentParser((ModelArguments, DataArguments, TrainingArguments))
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
+    
+    print("Parsed arguments")
 
     # NOTE: May expand supported model types in the future
     if model_args.model_type == "gpt-neox":
@@ -260,6 +265,8 @@ def train():
         if training_args.model_max_length > orig_ctx_len:
             scaling_factor = float(math.ceil(training_args.model_max_length / orig_ctx_len))
             config.rope_scaling = {"type": "linear", "factor": scaling_factor}
+            
+    print("Created config")
 
     # Load model and tokenizer
     model = transformers.AutoModelForCausalLM.from_pretrained(
@@ -268,6 +275,8 @@ def train():
         cache_dir=training_args.cache_dir,
         torch_dtype=torch.bfloat16,
     )
+    
+    print("Loaded model")
 
     tokenizer = transformers.AutoTokenizer.from_pretrained(
         model_args.model_name_or_path,
@@ -276,6 +285,8 @@ def train():
         padding_side="right",
         use_fast=True,
     )
+    
+    print("Loaded tokenizer")
 
     special_tokens_dict = dict()
     if tokenizer.pad_token is None:
@@ -294,6 +305,8 @@ def train():
     )
 
     data_module = make_supervised_data_module(tokenizer=tokenizer, data_args=data_args)
+    
+    print("Created data_module")
 
     if training_args.low_rank_training:
         if model_args.model_type == "gpt-neox":
@@ -317,11 +330,15 @@ def train():
     model.config.use_cache = False         # required for gradient checkpointing
     model.enable_input_require_grads()     # required for gradient checkpointing
     model.gradient_checkpointing_enable()  # enable gradient checkpointing
+    
+    print("Prepared model to learn")
 
     trainer = Trainer(model=model, tokenizer=tokenizer, args=training_args, **data_module)
     trainer.train()
     trainer.save_state()
     trainer.save_model(output_dir=training_args.output_dir)
+    
+    print("Learnt model")
 
 
 if __name__ == "__main__":
