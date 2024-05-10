@@ -24,6 +24,7 @@ from tqdm import tqdm
 import transformers
 from peft import PeftModel
 from llama_attn_replace import replace_llama_attn
+from tqdm.notebook import trange, tqdm
 
 
 def parse_config():
@@ -127,7 +128,7 @@ def main(args):
 
     total_test_points = args.max_tokens // args.interval
     all_accuries = {}
-    for i in range(total_test_points):
+    for i in trange(total_test_points):
         # This is a rough ratio to control the number of texts and tokens
         n_garbage = int(3.75 * (i + 1) * args.interval // 1024 * 1024)
         passed_tests = 0
